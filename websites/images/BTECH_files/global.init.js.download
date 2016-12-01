@@ -1,0 +1,566 @@
+$(function () {
+    var cssUrl = $(document.head).find("[href^='/css/theme']")[0].getAttribute("href").split("?")[0];
+    $.data(window, 'css-url', cssUrl);
+
+    $('.print-button').on('click', function () {
+        printPage();
+    });
+
+    //global menu toggle
+    $('.menu-button-expand').addClass('menu-button-visible');
+
+    $('.menu-button').on('click', function () {
+        var $this = $(this),
+            $menu = $('nav');
+
+        if ($this.is('.menu-button-expand')) {
+            $this.removeClass('menu-button-visible');
+            $menu.addClass('nav-show');
+            $('.menu-button-close').addClass('menu-button-visible').focus().blur();
+            $('html').addClass('no-scroll');
+        }
+        else if ($this.is('.menu-button-close')) {
+            $this.removeClass('menu-button-visible');
+            $menu.removeClass('nav-show');
+            $('.menu-button-expand').addClass('menu-button-visible').focus().blur();
+            $('html').removeClass('no-scroll');
+        }
+    });
+
+
+    var HeaderGalleryBlock = $("header .header-container .header-content-block.images");
+
+    if (HeaderGalleryBlock.length) {
+        HeaderGalleryBlock.find(".bg-img").each(function () {
+            var $this = $(this),
+                div = $("<div class='bg-img' style='background-image:url(" + this.getAttribute('src') + ");' alt='" + this.getAttribute('alt') + "'></div>");
+
+            $this.parent().append(div);
+            $this.remove();
+        });
+    }
+
+    //hack for showing empty block fake rendering 
+    $('.empty-block').parents('.html').addClass('empty-html-block');
+
+    //lightgallery
+    $('.attached-img-list').lightGallery({
+        addClass: 'light-gallery-modal',
+        closable: false,
+        loop: true,
+        speed: 200,
+        thumbnail: false,
+        onOpen: function () {
+            addTitleTextToPlugins('lg');
+            $('.ui-dialog').css('visibility', 'hidden');
+        },
+        onBeforeClose: function() {
+            $('.ui-dialog').css('visibility', 'visible');
+        }
+    });
+
+    //attachments toggle {
+    $('.attached-toggle').click(function () {
+        var $this = $(this),
+            $attachedWrapper = $(this).next();
+        $attachedWrapper.toggleClass('attached-open');
+        return false;
+    });
+
+    $('.carousel-gallery').parent().prev().addClass('carousel-gallery-title');
+
+    //remove empty rows
+    var $emptyRows, $contentRows;
+    $contentRows = $('.content-row').has('.content-block');
+    $emptyRows = $('.content-row').not($contentRows);
+    $emptyRows.remove();
+
+    //no block title
+    var $noBlockTitle, $withBlockTitle;
+    $withBlockTitle = $('.content-block').has('.block-title');
+    $noBlockTitle = $('.content-block').not($withBlockTitle);
+    $noBlockTitle.addClass('no-block-title');
+
+    //dismiss preview mode button
+    $('.dismiss-preview').click(function () {
+        $('.preview').hide();
+    });
+
+    //Text block table styling fix
+    function setTextBlockTableStyle() {
+        var $mainTextTables = $('main .content-block.html table');
+
+        if ($mainTextTables.length > 0) {
+            $mainTextTables.each(function () {
+                var $this = $(this),
+                    $thisCells = $this.find('td'),
+                    cellSpacing, cellPadding;
+
+                cellSpacing = $this.attr('cellspacing');
+                cellPadding = $this.attr('cellpadding');
+
+                if (cellSpacing > 0) {
+                    $this.css('border-collapse', 'separate').css('border-spacing', cellSpacing);
+                }
+
+                if (cellPadding > 0) {
+                    $thisCells.css('padding', cellPadding);
+                }
+            });
+        }
+    }
+
+    setTextBlockTableStyle();
+
+//Internet Calendar Subscribe
+    var $internetCalendarContainer = $('#internet-calendar-container'),
+        $internetCalendarSubscribeBtn = $('#internet-calendar-subscribe-btn, #internet-calendar-subscribe-mobile-btn');
+
+    $internetCalendarSubscribeBtn.on('click', function() {
+
+        if (!$('#internet-calendar-container').children().length) {
+            showICalUrl();
+        }
+
+        $internetCalendarContainer.dialog(
+            {
+                closeText: "Close",
+                dialogClass: "internet-calendar-subscribe",
+                hide: 200,
+                modal: true,
+                show: 200,
+                draggable: false,
+                resizable: false,
+                open: function() {
+                    preventFocusAfterClick();
+                    $('html').addClass('no-scroll');
+                    $('.ui-dialog').focus();
+                    preventFocusAfterClick();
+                    selectInternetCalendarUrlOnClick();
+                    copyInternetCalendarUrl();
+                },
+                close: function() {
+                    $('#internet-calendar-content').remove();
+                    $('html').removeClass('no-scroll');
+                    $(document.activeElement).blur();
+                }
+            });
+
+    });
+
+    function selectInternetCalendarUrlOnClick() {
+        var $internetCalendarUrl = $('.internet-calendar-url');
+
+        $internetCalendarUrl.on('dblclick', function() {
+            $(this).select();
+         });
+    }
+
+    function copyInternetCalendarUrl() {
+        var $internetCalendarUrl = $('.internet-calendar-url'),
+            $internetCalendarCopyBtn = $('.internet-calendar-copy-btn');
+
+        $internetCalendarCopyBtn.on('click', function() {
+            $internetCalendarUrl.select();
+            document.execCommand("copy");
+
+            $internetCalendarContainer.dialog('close');
+        });
+    }
+
+    //Accessibility
+    setTabIndex();
+
+    //Skip to content script
+    $('#skip-to-nav').on('click', function() {
+        $('#navigation').find('a, *[tabindex]').first().focus();
+    });
+
+    $('#skip-to-main').on('click', function() {
+        $('#main-content').find('a, *[tabindex]').first().focus();
+    });
+});
+
+function createPathForCustomCss(fileName) {
+    var cssUrl = $.data(window, 'css-url');
+
+    cssUrl = cssUrl ? cssUrl : '/';
+
+    return cssUrl + '?customCss=' + fileName;
+}
+
+function createStyleTag(urlPath) {
+    return "<link href=" + urlPath + " rel='stylesheet'>";
+}
+
+function getPrintButton() {
+    return $("<button type='button' id='calendar-print' class='print-button' value='Print' onclick='printPage()'><i class='icon-ec-print'></i> <span>Print</span></button>");
+}
+
+function printPage() {
+    var $baseGroupTitle = $("footer .group-name"),
+        $calendarTitle = $("main .basegroup-page-title"),
+        $calendar = $("#calendar").clone(),
+        $sourceList = $("#dataSources .source-block-wrapper"),
+        $calendarWeekRows = $calendar.find(".fc-row.fc-week.ui-widget-content"),
+        isLastWeekIsNextMonth = $calendarWeekRows.last()
+            .find(".fc-content-skeleton thead .fc-day-number").first().hasClass("fc-other-month"),
+        MainWindow = window.open("", "", "toolbar=no, status=no, menubar=no, height=680, width=850");
+
+    if(isLastWeekIsNextMonth) {
+        $calendarWeekRows.last().remove();
+        $calendar.addClass('five-week-month');
+    }
+
+    $baseGroupTitle = $baseGroupTitle.length > 0 ? $baseGroupTitle[0].innerHTML : '';
+    $calendarTitle = (($calendarTitle.length > 0)&&(!($calendarTitle[0].innerHTML == 'Calendar Sources'))) ? $calendarTitle[0].innerHTML : '';
+    $calendar = $calendar[0].outerHTML;
+    $sourceList = $sourceList.length > 0 ? $sourceList[0].outerHTML : "";
+
+    MainWindow.document.write("<title>Print Page</title>");
+    MainWindow.document.write(createStyleTag(createPathForCustomCss("calendar-printable-view")));
+    MainWindow.document.write(createStyleTag('/Content/bower_components/fullcalendar/dist/fullcalendar.css'));
+    MainWindow.document.write(createStyleTag('/Content/css/echalk-fonts.css'));
+    MainWindow.document.write("<div class='print-view-header'>");
+    MainWindow.document.write("<span class='base-group-title'>" + $baseGroupTitle + "</span>");
+    MainWindow.document.write("<button type='button' id='calendar-print-preview' class='print-preview-button' value='Print' onclick='return window.print();'><i class='icon-ec-print-preview'></i> <span>Print</span></button>");
+    MainWindow.document.write("<span class='calendar-title'>" + $calendarTitle + "</span>");
+    MainWindow.document.write("</div>");
+    MainWindow.document.write($calendar);
+    MainWindow.document.write($sourceList);
+    MainWindow.document.close();
+    return false;
+}
+
+$(window).load(function () {
+    if ($('#google_translate_element').length) {
+        var google_translate_html = $(document.getElementsByClassName('goog-te-menu-frame skiptranslate'))
+            .contents().find('html');
+
+        $(google_translate_html).find('head')
+            .append(createStyleTag(createPathForCustomCss('google-translate-stylesheet')));
+    }
+
+    //Accessibility
+    setTabIndex();
+    preventFocusAfterClick();
+    if (!!($('#goog-gt-tt')).length) {
+        $('#goog-gt-tt').find('.logo img').attr('alt', '');
+    }
+});
+
+$.fn.hasScrollBar = function () {
+    return this.get(0).scrollHeight > this.get(0).clientHeight;
+};
+
+
+function getImageBlockRatio(maxWidth, maxHeight) {
+    return Math.round(maxWidth / maxHeight * 100) / 100;
+}
+
+$.fn.getImageRatio = function () {
+    var ratio = getImageBlockRatio(this.width(), this.height());
+    return ratio > 0 ? ratio : false;
+};
+
+function setRatioToImages(blockRatio, imageSelector, blockSelector, itemSelector, embedCss) {
+    imageSelector = typeof imageSelector == 'undefined' ? '.bg-img' : imageSelector;
+    blockSelector = typeof blockSelector == 'undefined' ? '.img-list' : blockSelector;
+    itemSelector = typeof itemSelector == 'undefined' ? '.img-item' : itemSelector;
+    embedCss = typeof embedCss == 'undefined' ? true : embedCss;
+
+
+    $(blockSelector).each(function () {
+        var listGallery = $(this),
+            imageList = listGallery.find(itemSelector);
+
+        imageList.attr("data-block-ratio", blockRatio)
+            .each(function () {
+                var $this = $(this), imageRatio, imageType;
+
+                $this.find(imageSelector).load(function () {
+                    var image = $(this);
+
+                    imageRatio = image.getImageRatio();
+                    imageType = imageRatio == 1 ? "square" : imageRatio > 1 ? "wide" : "narrow";
+                    $this.attr("data-image-ratio", imageRatio).addClass(imageType).addClass(blockRatio > imageRatio ? "narrower" : "wider");
+                });
+            });
+
+        if (embedCss) imageList.css({paddingBottom: 100 / blockRatio + "%"})
+    });
+}
+
+function isVowel(c) {
+    return ['a', 'e', 'i', 'o', 'u'].indexOf(c.toLowerCase()) !== -1
+}
+
+function pluralize(number, string) {
+    var lastCharOfString = string[string.length - 1];
+    return (number > 1) && (isVowel(lastCharOfString)) ? string + "es"
+        : (number > 1) && (!isVowel(lastCharOfString)) ? string + "s"
+        : string;
+}
+
+function linkListBlockAdditionalClassCreator(maxCount) {
+    var stringRepresentationOfNumberEmun = {
+            1: "one",
+            2: "two",
+            3: "three",
+            4: "four",
+            5: "five",
+            6: "six",
+            7: "seven",
+            8: "eight",
+            9: "nine",
+            10: "ten"
+        },
+        changingPartOfClassName = "-item",
+        constantPartOfClassName = "-list";
+
+    var $mainLinkList = $('main[class*="content"] .content-block.list');
+
+    $mainLinkList.each(function () {
+        var $this = $(this),
+            $mainLinkListItems = $this.find('.link-list'),
+            mainLinkListItemCount;
+
+        mainLinkListItemCount = $mainLinkListItems.children().length;
+
+        if (mainLinkListItemCount <= maxCount) {
+            $mainLinkListItems.addClass(stringRepresentationOfNumberEmun[mainLinkListItemCount] + pluralize(mainLinkListItemCount, changingPartOfClassName) + constantPartOfClassName);
+        }
+    });
+}
+
+/*------------------------------- Accessibility Scripts -----------------------------*/
+//light gallery adding title text to control elements
+// plugin: lg/owl/owlModal
+function addTitleTextToPlugins(plugin) {
+    if (plugin == 'lg') {
+        $('#lg-close').attr('title', 'Close').attr('tabindex', '0').focus().blur();
+        $('#lg-prev').attr('title', 'Previous').attr('tabindex', '0');
+        $('#lg-next').attr('title', 'Next').attr('tabindex', '0');
+    }
+    else if (plugin == 'owl') {
+        $('.feed .owl-prev').attr('title', 'Previous Feed Post');
+        $('.feed .owl-next').attr('title', 'Next Feed Post');
+
+        $('.event .owl-prev').attr('title', 'Previous Event');
+        $('.event .owl-next').attr('title', 'Next Event');
+
+        $('.images .owl-prev').attr('title', 'Previous Image');
+        $('.images .owl-next').attr('title', 'Next Image');
+
+        $('.owl-prev').attr('tabindex', '0');
+        $('.owl-next').attr('tabindex', '0');
+    }
+    else if (plugin == 'owlModal') {
+        $('.ui-dialog.feed .owl-prev').attr('title', 'Previous Feed Post');
+        $('.ui-dialog.feed .owl-next').attr('title', 'Next Feed Post');
+
+        $('.ui-dialog.event .owl-prev').attr('title', 'Previous Event');
+        $('.ui-dialog.event .owl-next').attr('title', 'Next Event');
+
+        $('.modal-header-feed .owl-prev').attr('title', 'Previous Feed Post');
+        $('.modal-header-feed .owl-next').attr('title', 'Next Feed Post');
+
+        $('.ui-dialog .owl-prev').attr('tabindex', '0');
+        $('.ui-dialog .owl-next').attr('tabindex', '0');
+    }
+    else
+        return false
+}
+
+//Set tabIndex
+function setTabIndex() {
+    var $body = $('body'),
+        $header = $body.find('header'),
+        $nav = $body.find('#navigation'),
+        $footer = $body.find('.footer-subpage-main, .footer-homepage-main'),
+        $main = $body.find('#main-content'),
+        $directory = $main.find('.directory');
+
+    //------------- header
+    $body.find('#google_translate_element a').attr('tabindex', '1');
+    $body.find('.menu-button-expand').attr('tabindex', '1');
+    $body.find('#skip-to-nav, #skip-to-main').attr('tabindex', '2');
+    $header.find('.masthead .home-link').attr('tabindex', '3');
+    $header.find('.link-list a, .link-list-item.more-link').attr('tabindex', '4');
+    $header.find('.link-list .more-link > div').attr('tabindex', '4');
+    $header.find('.feed .owl-next, .feed .owl-prev').attr('tabindex', '5');
+    $header.find('.feed .feed-post-item a').attr('tabindex', '6');
+    $header.find('.feed .feed-post-item div[tabindex]').attr('tabindex', '6');
+    $header.find('.feed .feed-post-item .attached-img-thumb').attr('tabindex', '6');
+    $body.find('.menu-button-close').attr('tabindex', '7');
+    $nav.find('a').attr('tabindex', '7');
+    $body.find('#header-scrolling-button, .header-scrolling-button').attr('tabindex', '8');
+    //---------------- main
+    $main.find('a, div[tabindex], li[tabindex], .owl-next, .owl-prev, .attached-img-thumb, .read-more-button').attr('tabindex', '10');
+    $main.find('iframe').find('a, button').attr('tabindex', '-1');
+    //---------------- calendar
+    $main.find('#calendar-print').attr('tabindex', '10');
+    $main.find('#internet-calendar-subscribe-btn, #internet-calendar-subscribe-mobile-btn').attr('tabindex', '10');
+    $main.find('#calendar .ui-button').attr('tabindex', '10');
+    //---------------- directory/profile
+    $directory.find('.search-input').attr('tabindex', '10');
+    $directory.find('.filters-element').attr('tabindex', '10');
+    //--------------- footer
+    $footer.find('.footer-logo-container').attr('tabindex', '17');
+    $footer.find('.link-list a, .link-list-item.more-link').attr('tabindex', '17');
+    $footer.find('.echalk-link').attr('tabindex', '18');
+}
+//Set tabIndex for modal window
+function setTabIndexModal() {
+    var $uiDialog = $('.ui-dialog');
+
+    $uiDialog.removeAttr('tabindex');
+    $uiDialog.find('a, *[tabindex]').attr('tabindex', '0');
+    $uiDialog.find('.owl-next, .owl-prev').attr('tabindex', '0');
+    $uiDialog.find('.ui-dialog-titlebar-close').attr('tabindex', '0');
+}
+
+function setTabIndexCalendar() {
+    $('#calendar').find('.fc-event, .fc-more, .fc-close').attr('tabindex', '10');
+}
+
+function listenEnterKey() {
+    $(document).on('keydown', function(e){
+        var $focusItem = $(document.activeElement);
+
+        if (e.which == 13) {
+            var $clickedElementsExceptions = $('.owl-next, .owl-prev, .has-submenu, .more-link div, .fc-prev-button, .fc-next-button');
+
+            if (($focusItem.is('a, div[tabindex], li[tabindex], button')) && (!($focusItem.is($clickedElementsExceptions)))) {
+                setTimeout(function () {
+                    $focusItem.click();
+                }, 100);
+            }
+        }
+    });
+}
+
+function listenEnterKeyInOwlCarousel() {
+    $(document).on('keydown', function(e){
+        var $focus = $(document.activeElement),
+            $focusedOwl = $focus.parents('.owl-carousel'),
+            type = e.which == 13 ? 'enter': '';
+
+        if (type == 'enter') {
+            if ($focus.hasClass('owl-next')) {
+                $focusedOwl.data('owlCarousel').next();
+            } else if ($focus.hasClass('owl-prev')) {
+                $focusedOwl.data('owlCarousel').prev();
+            }
+        }
+    });
+}
+
+function listenEnterKeyInCalendar() {
+    $(document).on('keydown', function(e){
+
+        var $focus = $(document.activeElement),
+            $focusedCalendar = $focus.parents('.fc');
+
+        if (e.which == 13) {
+            if ($focus.hasClass('fc-next-button')) {
+                $focusedCalendar.fullCalendar('next');
+            } else if ($focus.hasClass('fc-prev-button')) {
+                $focusedCalendar.fullCalendar('prev');
+            }
+        }
+    });
+}
+
+// Keyboard usage in navigation
+function listenEnterKeyInNav(navContainer) {
+    $(document).on('keydown', function(e){
+        var $focusItem = $(document.activeElement);
+
+        if (($focusItem.hasClass('has-submenu'))&&(e.which == 13))  {
+            navContainer.smartmenus('itemActivate', $focusItem);
+        }
+    });
+}
+
+function listenEnterKeyInHeaderFooterLinkList() {
+    $(document).on('keydown', function(e) {
+        var $focusItem = $(document.activeElement),
+            $MoreList,
+            $headerMoreListOld = $('header .link-list .dropdown-menu'),
+            $headerMoreListNew = $('header .link-list .link-list-sub'),
+            $headerFooterLinkListElements = $('header .link-list, footer .link-list').find('a, .more-link, div[tabindex]');
+
+        if (!!($(document.activeElement).parents('header').length)) {
+            if (!!($headerMoreListNew.length)) {
+                $MoreList = $headerMoreListNew;
+            }
+            else if (!!($headerMoreListOld.length)) {
+                $MoreList = $headerMoreListOld;
+            }
+        }
+        else if (!!($(document.activeElement).parents('footer').length)) {
+            $MoreList = $('footer .link-list .link-list-sub');
+        }
+
+        // Enter key
+        if ((e.which == 13)&&(($focusItem.hasClass('more-link'))||($focusItem.is('.more-link > div[tabindex]')))&&(!($MoreList.hasClass('more-link-list-opened')))) {
+            setTimeout(function () {
+                $MoreList.addClass('more-link-list-opened');
+            }, 200);
+        }
+        else if (!!$MoreList) {
+            // Esc key
+            if ((e.which == 27)&&($MoreList.hasClass('more-link-list-opened'))) {
+                setTimeout(function () {
+                    $MoreList.removeClass('more-link-list-opened');
+                }, 200);
+            }
+            // Tab key
+            if ((e.which == 9)&&(!($focusItem.is($headerFooterLinkListElements)))&&($MoreList.hasClass('more-link-list-opened'))) {
+                setTimeout(function () {
+                    $MoreList.removeClass('more-link-list-opened');
+                }, 200);
+            }
+        }
+    });
+}
+
+function addEnterKeyListener() {
+    $(document).off('keydown');
+    listenEnterKeyInHeaderFooterLinkList();
+    listenEnterKeyInOwlCarousel();
+    listenEnterKey();
+    listenEnterKeyInCalendar();
+}
+
+function preventFocusAfterClick() {
+    var $clickedElements = $('a, div[tabindex], li[tabindex], button');
+
+    $clickedElements.on('click', function() {
+        var $this = $(this);
+            $this.blur();
+    });
+}
+
+function preventOverflowedFocus() {
+    var $contentBlock = $('main .content-block, header .feed');
+
+    $contentBlock.each(function() {
+        var $this = $(this),
+           containerBottomOffset = $this.offset().top + $this.height(),
+           $clickedElements = $this.find('a, button, div[tabindex]');
+
+        $clickedElements.each(function() {
+            var $this = $(this),
+                $clickedElementsOffset = $this.offset().top + $this.height();
+
+            if ($clickedElementsOffset > containerBottomOffset) {
+                $this.attr('data-hidden-element', '');
+            }
+            else {
+                $this.removeAttr('data-hidden-element');
+            }
+        });
+    });
+}

@@ -1,0 +1,60 @@
+/* Note: dateTimeService has dependency on moment.js  */
+
+function dateTimeService() {
+    /**
+      * Reset hours, minutes, seconds and milliseconds of date time moment. 
+      * @param {Moment} momentDateTime
+      * @return {Moment} The date moment
+      * private
+   */
+
+    var resetTime = function (momentDateTime) {
+        momentDateTime.set('hour', 0);
+        momentDateTime.set('minute', 0);
+        momentDateTime.set('second', 0);
+        momentDateTime.set('millisecond', 0);
+        return momentDateTime;
+    }
+
+    //moment().zone() has been deprecated. moment.utcOffset() is the opposite of moment.zone()
+    this.localToUtcOffsetMinutes = -moment().utcOffset();
+
+    /**
+        * Get moment of the specified timestamp. Moment is in Locale.
+        * If no timestamp has been provided, the now moment is used.
+        * @param {Number} timestamp The timestamp of the moment
+        * @return {Moment} The moment in Locale
+    */
+    this.getMomentLocale = function (timestamp) {
+        return moment(timestamp);
+    }
+
+    /**
+        * Clone date and change it to shift date time to LOCAL midnight.
+        *
+        * @param {Moment | Number} dateUtc
+        * @return {Moment} The moment in local time
+    */
+    this.cloneDateAsLocalMidnight = function (dateUtc) {
+        if (!moment.isMoment(dateUtc) && !_.isFinite(dateUtc)) {
+            $log.error('[Publicate.dateTimeService] Unexpected argument type while cloning date as LOCAL midnight (dateMoment=' + JSON.stringify(dateUtc) + ')');
+            return;
+        }
+        var dateMomentUtc = moment.isMoment(dateUtc) ? dateUtc.utc() : moment(dateUtc).utc();
+
+        //reset UTC hours, minutes and seconds first
+        dateMomentUtc = resetTime(dateMomentUtc);
+
+        //consider date as LOCAL date
+        var momentLocal = dateMomentUtc.clone().local();
+
+        var localToUtcOffsetMinutes = -momentLocal.utcOffset();   //moment().zone() has been deprecated. moment.utcOffset() is the opposite of moment.zone()
+
+        //shift time to midnight as for LOCAL time
+        momentLocal.add(localToUtcOffsetMinutes, 'minutes');
+
+        return momentLocal;
+    }
+}
+
+

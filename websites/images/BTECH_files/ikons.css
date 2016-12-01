@@ -1,0 +1,10 @@
+@font-face {
+	font-family: 'ikons2';
+	src:url('../icons/ikons2/fonts/ikons2.eot?-4wdwg3');
+	src:url('../icons/ikons2/fonts/ikons2.eot?#iefix-4wdwg3') format('embedded-opentype'),
+		url('../icons/ikons2/fonts/ikons2.woff?-4wdwg3') format('woff'),
+		url('../icons/ikons2/fonts/ikons2.ttf?-4wdwg3') format('truetype'),
+		url('../icons/ikons2/fonts/ikons2.svg?-4wdwg3#icomoon') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}

@@ -1,0 +1,256 @@
+;
+(function (factory) {
+    if (typeof define === 'function' && define.amd) {
+        // AMD
+        define(['jquery'], factory);
+    } else if (typeof exports === 'object') {
+        // CommonJS
+        module.exports = factory(require('jquery'));
+    } else {
+        // Browser globals
+        factory(jQuery);
+    }
+}(function ($) {
+    'use strict';
+
+    /** @typedef {Object} defaults
+     *  @param {Boolean | String} wrapperClassName - true means take parent, string should contain jQuery selector of wrap element
+     *  @param {String} navItemClassName - class name of items inside selector
+     *  @param {Boolean} moreItem - false means that element doesn't contain more link and moreItemClassName and moreItemName wouldn't be used
+     *  @param {String} moreItemClassName - class name of item which is collect hidden items
+     *  @param {String} defaultMoreLink - html more item
+     */
+    var morelink = "morelink",
+        defaults = {
+            wrapperClassName: true,
+            navItemClassName: ".item",
+            moreItem: false,
+            moreItemClassName: "",
+            defaultMoreLink: "<li class='more-item'><a href='#'>More</a><ul class='dropdown-menu'></ul></li>"
+        };
+
+    function displayDropdown(dropdown_element) {
+
+    }
+
+    $.fn.hiddenItem = function (isHidden) {
+        if (this.length > 1) {
+            this.each(function () {
+                $(this).attr("data-hidden-item", isHidden);
+            });
+        } else {
+            this.attr("data-hidden-item", isHidden);
+        }
+    };
+
+    $.fn.lastVisible = function (isShown) {
+        if (isShown) {
+            this.addClass("last-visible-item");
+        } else {
+            this.find(".last-visible-item").removeClass("last-visible-item");
+        }
+    };
+
+    function throttle(func, ms) {
+
+        var me = this,
+            isThrottled = false,
+            savedArgs,
+            savedThis;
+
+        function wrapper() {
+            if (me.isDestroyed) {
+                clearTimeout(me.timeout);
+                return false;
+            }
+
+            if (isThrottled) {
+                savedArgs = arguments;
+                savedThis = this;
+                return;
+            }
+
+            func.apply(this, arguments);
+
+            isThrottled = true;
+
+            me.timeout = setTimeout(function () {
+                isThrottled = false;
+                if (savedArgs) {
+                    wrapper.apply(savedThis, savedArgs);
+                    savedArgs = savedThis = null;
+                }
+            }, ms);
+        }
+
+        return wrapper;
+    }
+
+    function MoreLink(element, options) {
+        this.element = element;
+        this.options = $.extend({}, defaults, options);
+        this._defaults = defaults;
+        this._name = morelink;
+        this.oldElementWidth = $(window).width();
+        this.init();
+    }
+
+    MoreLink.prototype = {
+        init: function () {
+            var $this = $(this.element),
+                options = this.options,
+                clonedItems = $this.children().clone(true);
+
+            $this.data("moreLink", this);
+
+            this.isDestroyed = false;
+            this.linkWrapper = typeof options.wrapperClassName === 'string' ? $(options.wrapperClassName) : $this.parent();
+            this.linkWrapper.addClass("in-progress");
+            this.moreLinkList = 0;
+
+            if (!options.moreItem) {
+                $this.append($(options.defaultMoreLink));
+            }
+
+            this.navigationMoreItem = $this.children().last();
+
+            $(this.navigationMoreItem).find('ul').append(clonedItems);
+
+            this.navigationMoreList = $(this.navigationMoreItem).find('> ul > li');
+
+            this.navigationMoreList.hiddenItem(true);
+
+            this.hide();
+
+            this.linkWrapper.removeClass("in-progress");
+
+            this.throttle = throttle.bind(this);
+
+            $(window).bind('resize.moreLink', this.throttle(this.recalc.bind(this), 200));
+        },
+
+        hide: function () {
+            var $this = $(this.element),
+                options = this.options,
+                moreItem = this.navigationMoreItem,
+                moreList = this.navigationMoreList,
+                linkWrapperWidth = this.linkWrapper.width(),
+                linkList = $this.find(" > " + options.navItemClassName + ":not([data-hidden-item='true'])");
+
+            for (var i = linkList.length - 1; i > 0; i--) {
+                var $thisItem = $(linkList[i]);
+                var $thisItemMoreLink = moreList.eq(i);
+                var rightPos = 0,
+                    freeSpace = this.moreLinkList > 0 ? moreItem.width() : 0;
+
+                if (!!$thisItem.data("position-right")) {
+                    rightPos = $thisItem.data("position-right");
+                } else {
+                    rightPos = $thisItem.position().left + $thisItem.width();
+                    $thisItem.data("position-right", rightPos);
+                }
+
+                if (linkWrapperWidth - rightPos < freeSpace) {
+                    this.moreLinkList++;
+                    $thisItem.hiddenItem(true);
+                    $thisItemMoreLink.hiddenItem(false);
+                } else {
+                    $thisItem.lastVisible(true);
+                    break;
+                }
+            }
+
+            if (this.moreLinkList > 0) {
+                $this.lastVisible(false);
+                moreItem.hiddenItem(false);
+            } else {
+                moreItem.hiddenItem(true);
+            }
+        },
+
+        show: function () {
+            var $this = $(this.element),
+                options = this.options,
+                linkWrapperWidth = this.linkWrapper.width(),
+                moreItem = this.navigationMoreItem,
+                moreList = $.grep(this.navigationMoreList, function(item){return $(item).attr("data-hidden-item") === "false"}),
+                linkList = $this.find(" > " + options.navItemClassName + "[data-hidden-item='true']");
+
+            for (var i = 0; i < linkList.length; i++) {
+                var $thisItemMoreLink = $(moreList[i]);
+                var $thisItem = $(linkList[i]),
+                    rightPos = $thisItem.data("position-right"),
+                    freeSpace = this.moreLinkList > 1 ? moreItem.width() : 0;
+
+                if (linkWrapperWidth - rightPos > freeSpace) {
+                    this.moreLinkList--;
+                    $thisItem.hiddenItem(false);
+                    $thisItemMoreLink.hiddenItem(true);
+                } else {
+                    $thisItem.lastVisible(true);
+                    break;
+                }
+            }
+
+            if (this.moreLinkList > 0) {
+                $this.lastVisible(false);
+                moreItem.hiddenItem(false);
+            } else {
+                moreItem.hiddenItem(true);
+            }
+        },
+
+        recalc: function (event) {
+            var newElementWidth = this.linkWrapper.width();
+
+            if (this.oldElementWidth < newElementWidth) {
+                this.oldElementWidth = newElementWidth;
+                return this.show();
+            } else if (this.oldElementWidth > newElementWidth) {
+                this.oldElementWidth = newElementWidth;
+                return this.hide();
+            } else {
+                this.oldElementWidth = newElementWidth;
+                return false;
+            }
+        },
+
+        destroy: function () {
+            $(this.options.selector).removeData("moreLink");
+            $(this.navigationMoreItem).remove();
+
+            this.isDestroyed = true;
+
+            var elements = $(this.element).find("[data-hidden-item]");
+            elements.each(function () {
+                $(this).removeAttr("data-hidden-item").removeData("position-right");
+            });
+        }
+    };
+
+    $.fn.moreLink = function (options) {
+        var selector = this.selector;
+
+        if (typeof options === 'object') {
+            return this.each(function () {
+                if (!$(this).data('moreLink')) {
+                    options.selector = selector;
+
+                    new MoreLink(this, options);
+                }
+            });
+        } else if (typeof options === 'string') {
+            var args = arguments,
+                method = options;
+            Array.prototype.shift.call(args);
+            return this.each(function () {
+                var morelink = $(this).data('moreLink');
+                if (morelink && morelink[method]) {
+                    morelink[method].apply(morelink, args);
+                }
+            });
+        }
+
+        return this;
+    }
+}));

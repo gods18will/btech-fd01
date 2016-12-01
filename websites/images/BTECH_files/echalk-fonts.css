@@ -1,0 +1,10 @@
+@font-face {
+	font-family: 'echalk';
+	src:url('../icons/echalk/fonts/icomoon.eot?flyxcd');
+	src:url('../icons/echalk/fonts/icomoon.eot?#iefixflyxcd') format('embedded-opentype'),
+		url('../icons/echalk/fonts/icomoon.woff?flyxcd') format('woff'),
+		url('../icons/echalk/fonts/icomoon.ttf?flyxcd') format('truetype'),
+		url('../icons/echalk/fonts/icomoon.svg?flyxcd#icomoon') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}

@@ -1,0 +1,109 @@
+;
+(function ($) {
+    var default_options = {
+            moreLink: '<a href="#">Read More</a>',
+            lessLink: '<a href="#">Close</a>',
+            minHeight: 310,
+            infelicity: 5
+        },
+        uniqueIdCounter = 0;
+
+    function uniqueId() {
+        var id = ++uniqueIdCounter;
+        return 'minimal-readmore-' + id;
+    }
+
+    function MinimalReadmore(element, options) {
+        this.element = element;
+
+        this.options = $.extend({}, default_options, options);
+
+        this._defaults = default_options;
+
+        this.init();
+    }
+
+
+    MinimalReadmore.prototype = {
+        init: function () {
+            var current_element = $(this.element);
+
+            if ((current_element.outerHeight(true) <= this.options.minHeight) || (Math.abs(current_element.outerHeight(true) - this.options.minHeight) <= this.options.infelicity)) {
+                return true;
+            } else {
+                var id = current_element.attr('id') || uniqueId();
+
+                this.equalHeight();
+
+                current_element.attr({
+                    'aria-expanded': false,
+                    'id': id
+                });
+
+                $moreLink = $(this.options.moreLink)
+                    .on('click', (function (_this) {
+                        return function (event) {
+                            _this.toggle(this, event);
+                        };
+                    })(this))
+                    .attr({
+                        'aria-controls': id
+                    });
+
+                current_element.after($moreLink);
+                current_element.data('collapsed-height', current_element.data('collapsed-height') - current_element.next().outerHeight());
+                current_element.css({height: current_element.data('collapsed-height')})
+            }
+        },
+        toggle: function (fromElement, event) {
+            var element = this.element,
+                isExpanded = element.attr('aria-expanded') == "true",
+                newLink = isExpanded ? 'moreLink' : 'lessLink';
+
+            if (event) {
+                event.preventDefault();
+            }
+
+            $(fromElement).replaceWith($(this.options[newLink])
+                .on('click', (function (_this) {
+                    return function (event) {
+                        _this.toggle(this, event);
+                    };
+                })(this))
+                .attr({
+                    'aria-controls': $(element).attr('id')
+                }));
+
+            $(element).attr('aria-expanded', !isExpanded).css({height: isExpanded ? $(element).data('collapsed-height') : 'auto'});
+        },
+
+        equalHeight: function () {
+            var $this = $(this.element),
+                closest_column = $this.closest(".content-block"),
+                closest_row = $this.closest(".content-inner-row"),
+                columnsList = closest_row.children(),
+                blockHasTitle = closest_column.children().length > 1 ? closest_column.children().first().outerHeight(true) : 0,
+                minHeight = this.options.minHeight,
+                tallest = 0,
+                element_height;
+
+
+            columnsList.each(function () {
+                if (!$(this).is(closest_column)) {
+                    tallest = Math.max($(this).height(), tallest);
+                }
+            });
+
+            element_height = tallest > minHeight ? tallest : minHeight;
+            element_height -= blockHasTitle;
+
+            $this.data('collapsed-height', element_height);
+        }
+    };
+
+    $.fn.minimalreadmore = function (options) {
+        options.selector = this.selector;
+
+        new MinimalReadmore(this, options);
+    }
+})(jQuery);

@@ -1,0 +1,43 @@
+﻿"use strict";
+var apiService = (function () {
+
+    function ApiService() {
+
+    }
+
+    ApiService.prototype.__handleError = function (code, message) {
+        console.error(message);
+    };
+
+    ApiService.prototype.request = function (options) {
+        var me = this;
+        $.ajax({
+            dataType: "json",
+            type: options.method || "GET",
+            url: options.url,
+            success: function (data) {
+                if (options.success) {
+                    options.success(data);
+                }
+            },
+            error: function (jqXHR, textStatus, statusDescription) {
+                var SERVICE_UNAVAILABLE_ERROR = 503;
+
+                me.__handleError(jqXHR.status, statusDescription);
+
+                if (jqXHR.status === SERVICE_UNAVAILABLE_ERROR) {
+                    document.open();
+                    document.write(jqXHR.responseText);
+                    document.close();
+                    return;
+                }
+
+                if (options.error) {
+                    options.error();
+                }
+            }
+        });
+    };
+
+    return new ApiService();
+})();

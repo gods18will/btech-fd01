@@ -1,0 +1,82 @@
+﻿"use strict";
+
+var utils = (function () {
+    function Utils() {
+        var me = this;
+        me.DefaultSchoolImageUrl = "/img/default-school-image.svg";
+        me.DefaultClassImageUrl = "/img/default-class-image.svg";
+        me.DefaultGroupImageUrl = "/img/default-group-image.svg";
+        me.DefaultUserAvatarUrl = "/img/default-user-avatar.svg";
+    }
+
+    Utils.prototype.WhiteSpaceRegExpr = /[\s\uFEFF\xA0]+/g;
+
+    Utils.prototype.getUserProfilePageUrl = function(userId) {
+        return "/faculty/" + userId + "/profile";
+    };
+
+    Utils.prototype.getClassLandingPageUrl = function(publicPresenceSectionId) {
+        return "/classes/" + publicPresenceSectionId;
+    }
+
+    Utils.prototype.getGroupLandingPageUrl = function (publicPresenceSectionId) {
+        return "/groups/" + publicPresenceSectionId;
+    }
+
+    Utils.prototype.getEmailUrl = function(email) {
+        return "mailto:" + email;
+    };
+
+    Utils.prototype.normalize = function(str) {
+        return $.trim(str).toLowerCase();
+    };
+
+    Utils.prototype.splitByWhiteSpace = function (text) {
+        return $.trim(text).replace(SearchInput.WhiteSpaceRegExpr, " ").split(" ");
+    };
+
+    Utils.prototype.resolveSiteUrl = function (domainName) {
+        return "http://" + domainName;
+    };
+
+    Utils.prototype.resolveSchoolCoverImage = function (coverTileImageUrl) {
+        return coverTileImageUrl || this.DefaultSchoolImageUrl;
+    }
+
+    Utils.prototype.resolveClassCoverImage = function(coverTileImageUrl) {
+        return coverTileImageUrl || this.DefaultClassImageUrl;
+    }
+
+    Utils.prototype.resolveGroupCoverImage = function(coverTileImageUrl) {
+        return coverTileImageUrl || this.DefaultGroupImageUrl;
+    }
+
+    Utils.prototype.resolveUserAvatar = function(avatarUrl) {
+        return avatarUrl || this.DefaultUserAvatarUrl;
+    };
+
+    Utils.prototype.sortByName = function (items) {
+        var leftName, rightName;
+
+        items.sort(function (left, right) {
+            leftName = left.name;
+            rightName = right.name;
+            return leftName.localeCompare(rightName);
+        });
+    };
+
+    Utils.prototype.humanizeUserName = function(user) {
+        return user.nameFirst + " " + user.nameLast;
+    };
+
+    Utils.prototype.getUserTypeName = function(userTypeEnum, userType) {
+        return _.invert(userTypeEnum)[userType];
+    };
+    
+    Utils.prototype.profilesComparator = function(greater, lesser){
+        var result = greater.user.nameLast.localeCompare(lesser.user.nameLast);
+        return result || greater.user.nameFirst.localeCompare(lesser.user.nameFirst);
+    };
+
+    return new Utils();
+})();
